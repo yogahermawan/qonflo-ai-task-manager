@@ -1,1 +1,82 @@
-import{useDraggable}from'@dnd-kit/core';import{useState}from'react';import type{Task}from'../types/task';import{AuditHistory}from'./AuditHistory';const f=(v:string)=>new Intl.DateTimeFormat(undefined,{dateStyle:'short',timeStyle:'short'}).format(new Date(v));export function TaskCard({task,busy,onEdit,onDelete}:{task:Task;busy?:boolean;onEdit:(task:Task)=>void;onDelete:(task:Task)=>Promise<void>}){const[history,setHistory]=useState(false);const{attributes,listeners,setNodeRef,transform,isDragging}=useDraggable({id:'task:'+task.id,data:{kind:'task',task}});const style=transform?{transform:'translate3d('+transform.x+'px,'+transform.y+'px,0)'}:undefined;const stop=(e:React.PointerEvent|React.MouseEvent)=>e.stopPropagation();return <article ref={setNodeRef} style={style} className={'task-card '+(isDragging?'dragging':'')} {...attributes} {...listeners}><div className="task-card-top"><h3>{task.title}</h3><button className="icon-button" aria-label={'Edit '+task.title} onPointerDown={stop} onClick={e=>{stop(e);onEdit(task);}}>Edit</button></div>{task.description&&<p className="description">{task.description}</p>}<p className="task-meta">{task.updatedBy?'Updated by @'+task.updatedBy+' - ':''}{f(task.updatedAt)}</p><div className="card-actions"><button className="text-button" onPointerDown={stop} onClick={e=>{stop(e);setHistory(!history);}}>History {task.auditLogs.length?'('+Math.min(task.auditLogs.length,5)+')':''}</button><button className="text-button danger-text" onPointerDown={stop} onClick={e=>{stop(e);void onDelete(task);}} disabled={busy}>Delete</button></div>{history&&<AuditHistory logs={task.auditLogs}/>}</article>;}
+import { useDraggable } from '@dnd-kit/core';
+import { useState } from 'react';
+import type { Task } from '../types/task';
+import { AuditHistory } from './AuditHistory';
+const f = (v: string) =>
+  new Intl.DateTimeFormat(undefined, { dateStyle: 'short', timeStyle: 'short' }).format(
+    new Date(v),
+  );
+export function TaskCard({
+  task,
+  busy,
+  onEdit,
+  onDelete,
+}: {
+  task: Task;
+  busy?: boolean;
+  onEdit: (task: Task) => void;
+  onDelete: (task: Task) => Promise<void>;
+}) {
+  const [history, setHistory] = useState(false);
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: 'task:' + task.id,
+    data: { kind: 'task', task },
+  });
+  const style = transform
+    ? { transform: 'translate3d(' + transform.x + 'px,' + transform.y + 'px,0)' }
+    : undefined;
+  const stop = (e: React.PointerEvent | React.MouseEvent) => e.stopPropagation();
+  return (
+    <article
+      ref={setNodeRef}
+      style={style}
+      className={'task-card ' + (isDragging ? 'dragging' : '')}
+      {...attributes}
+      {...listeners}
+    >
+      <div className="task-card-top">
+        <h3>{task.title}</h3>
+        <button
+          className="icon-button"
+          aria-label={'Edit ' + task.title}
+          onPointerDown={stop}
+          onClick={(e) => {
+            stop(e);
+            onEdit(task);
+          }}
+        >
+          Edit
+        </button>
+      </div>
+      {task.description && <p className="description">{task.description}</p>}
+      <p className="task-meta">
+        {task.updatedBy ? 'Updated by @' + task.updatedBy + ' - ' : ''}
+        {f(task.updatedAt)}
+      </p>
+      <div className="card-actions">
+        <button
+          className="text-button"
+          onPointerDown={stop}
+          onClick={(e) => {
+            stop(e);
+            setHistory(!history);
+          }}
+        >
+          History {task.auditLogs.length ? '(' + Math.min(task.auditLogs.length, 5) + ')' : ''}
+        </button>
+        <button
+          className="text-button danger-text"
+          onPointerDown={stop}
+          onClick={(e) => {
+            stop(e);
+            void onDelete(task);
+          }}
+          disabled={busy}
+        >
+          Delete
+        </button>
+      </div>
+      {history && <AuditHistory logs={task.auditLogs} />}
+    </article>
+  );
+}

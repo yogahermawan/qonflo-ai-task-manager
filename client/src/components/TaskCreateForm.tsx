@@ -1,1 +1,43 @@
-import{type FormEvent,useState}from'react';export function TaskCreateForm({disabled,onCreate}:{disabled?:boolean;onCreate:(title:string,description:string)=>Promise<void>}){const[title,setTitle]=useState('');const[description,setDescription]=useState('');async function submit(e:FormEvent){e.preventDefault();if(!title.trim())return;await onCreate(title,description);setTitle('');setDescription('');}return <form className="create" onSubmit={submit}><label htmlFor="title">New task</label><div className="row"><input id="title" value={title} onChange={e=>setTitle(e.target.value)} placeholder="Task title" maxLength={140} disabled={disabled} required/><button disabled={disabled}>Add task</button></div><textarea value={description} onChange={e=>setDescription(e.target.value)} placeholder="Description (optional)" maxLength={2000} rows={2} disabled={disabled}/></form>;}
+import { type FormEvent, useState } from 'react';
+export function TaskCreateForm({
+  disabled,
+  onCreate,
+}: {
+  disabled?: boolean;
+  onCreate: (title: string, description: string) => Promise<void>;
+}) {
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    if (!title.trim()) return;
+    await onCreate(title, description);
+    setTitle('');
+    setDescription('');
+  }
+  return (
+    <form className="create" onSubmit={submit}>
+      <label htmlFor="title">New task</label>
+      <div className="row">
+        <input
+          id="title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Task title"
+          maxLength={140}
+          disabled={disabled}
+          required
+        />
+        <button disabled={disabled}>Add task</button>
+      </div>
+      <textarea
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+        placeholder="Description (optional)"
+        maxLength={2000}
+        rows={2}
+        disabled={disabled}
+      />
+    </form>
+  );
+}

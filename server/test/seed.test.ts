@@ -15,11 +15,15 @@ test('normalizes the checked-in board seed timestamp to a BSON-compatible Date',
 });
 
 test('rejects invalid board seed timestamps', () => {
-  assert.throws(() => normalizeBoardSeed({
-    _id: 'default',
-    name: 'Task board',
-    columns: [],
-    customFields: [],
-    updatedAt: 'not-a-date',
-  }), /Invalid board seed updatedAt/);
+  assert.throws(
+    () =>
+      normalizeBoardSeed({
+        _id: 'default',
+        name: 'Task board',
+        columns: [],
+        customFields: [],
+        updatedAt: 'not-a-date',
+      }),
+    /Invalid board seed updatedAt/,
+  );
 });

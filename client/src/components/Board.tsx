@@ -1,1 +1,79 @@
-import{DndContext,KeyboardSensor,PointerSensor,useSensor,useSensors,type DragEndEvent}from'@dnd-kit/core';import type{Board as BoardType,BoardColumn,Task}from'../types/task';import{BoardColumn as Column}from'./BoardColumn';export function Board({board,tasks,busy,onMove,onEdit,onDelete,onAddColumn,onRenameColumn,onDeleteColumn,onReorder}:{board:BoardType;tasks:Task[];busy?:boolean;onMove:(task:Task,target:string)=>Promise<void>;onEdit:(task:Task)=>void;onDelete:(task:Task)=>Promise<void>;onAddColumn:()=>void;onRenameColumn:(c:BoardColumn)=>void;onDeleteColumn:(c:BoardColumn)=>void;onReorder:(ids:string[])=>Promise<void>}){const sensors=useSensors(useSensor(PointerSensor,{activationConstraint:{distance:6}}),useSensor(KeyboardSensor));async function end(e:DragEndEvent){const kind=e.active.data.current?.kind;const over=e.over?.data.current;if(kind==='task'&&over?.kind==='column-drop'){const task=e.active.data.current?.task as Task;if(task.status!==over.column.id)await onMove(task,over.column.id);}if(kind==='column'&&over?.kind==='column-drop'){const active=e.active.data.current?.column as BoardColumn;const target=over.column as BoardColumn;if(active.id!==target.id){const ids=board.columns.map(c=>c.id);const from=ids.indexOf(active.id),to=ids.indexOf(target.id);ids.splice(from,1);ids.splice(to,0,active.id);await onReorder(ids);}}}return <DndContext sensors={sensors} onDragEnd={end}><section className="board" aria-label={board.name}>{board.columns.map(c=><Column key={c.id} column={c} tasks={tasks.filter(t=>t.status===c.id)} busy={busy} onEdit={onEdit} onDelete={onDelete} onRename={onRenameColumn} onDeleteColumn={onDeleteColumn}/>)}<button className="add-step" onClick={onAddColumn} disabled={busy}>+ Add step</button></section></DndContext>;}
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import type { Board as BoardType, BoardColumn, Task } from '../types/task';
+import { BoardColumn as Column } from './BoardColumn';
+export function Board({
+  board,
+  tasks,
+  busy,
+  onMove,
+  onEdit,
+  onDelete,
+  onAddColumn,
+  onRenameColumn,
+  onDeleteColumn,
+  onReorder,
+}: {
+  board: BoardType;
+  tasks: Task[];
+  busy?: boolean;
+  onMove: (task: Task, target: string) => Promise<void>;
+  onEdit: (task: Task) => void;
+  onDelete: (task: Task) => Promise<void>;
+  onAddColumn: () => void;
+  onRenameColumn: (c: BoardColumn) => void;
+  onDeleteColumn: (c: BoardColumn) => void;
+  onReorder: (ids: string[]) => Promise<void>;
+}) {
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor),
+  );
+  async function end(e: DragEndEvent) {
+    const kind = e.active.data.current?.kind;
+    const over = e.over?.data.current;
+    if (kind === 'task' && over?.kind === 'column-drop') {
+      const task = e.active.data.current?.task as Task;
+      if (task.status !== over.column.id) await onMove(task, over.column.id);
+    }
+    if (kind === 'column' && over?.kind === 'column-drop') {
+      const active = e.active.data.current?.column as BoardColumn;
+      const target = over.column as BoardColumn;
+      if (active.id !== target.id) {
+        const ids = board.columns.map((c) => c.id);
+        const from = ids.indexOf(active.id),
+          to = ids.indexOf(target.id);
+        ids.splice(from, 1);
+        ids.splice(to, 0, active.id);
+        await onReorder(ids);
+      }
+    }
+  }
+  return (
+    <DndContext sensors={sensors} onDragEnd={end}>
+      <section className="board" aria-label={board.name}>
+        {board.columns.map((c) => (
+          <Column
+            key={c.id}
+            column={c}
+            tasks={tasks.filter((t) => t.status === c.id)}
+            busy={busy}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            onRename={onRenameColumn}
+            onDeleteColumn={onDeleteColumn}
+          />
+        ))}
+        <button className="add-step" onClick={onAddColumn} disabled={busy}>
+          + Add step
+        </button>
+      </section>
+    </DndContext>
+  );
+}

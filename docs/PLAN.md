@@ -9,6 +9,7 @@ Evolve the existing React + TypeScript/Vite and Express + TypeScript mini task m
 ### Pending user decision: customization scope
 
 The phrase "board atau task bisa disesuaikan sendiri sesuai kemauan user" can mean:
+
 1. One shared board with shared configurable columns/statuses and custom task fields.
 2. Separate boards/configuration per signed-in user, which requires accounts, authentication, and ownership.
 3. One shared board with configurable columns but standard task fields.
@@ -16,6 +17,7 @@ The phrase "board atau task bisa disesuaikan sendiri sesuai kemauan user" can me
 A clarification was requested. Until answered, the architecture below is provisional. Recommended bounded default: one shared board, configurable ordered columns and task fields, no login/roles, and the existing actor picker remains self-selected. This matches the original no-auth constraint and avoids adding account management. Actor selection is attribution, not proof of identity.
 
 Other assumptions to validate:
+
 - Existing forward-only transition invariant remains. In a configurable ordered board, a task may move only to the immediately next column; reordering columns changes the next allowed stage. If arbitrary lane movement is intended, that conflicts with the original workflow rule and needs explicit approval.
 - A single board is the initial deployment. Board ownership/multiple boards are excluded unless the scope answer requires them.
 - Updated by is the actor on the most recent actual status transition. Creation shows creator/initial state only if a reliable creator is provided; do not invent an actor.
@@ -35,12 +37,14 @@ Other assumptions to validate:
 ## Data and API strategy
 
 Provisional entities:
+
 - Actor: stable ID and display name in MongoDB; this is attribution only, not authenticated identity.
 - Board: name, ordered columns[] with stable IDs/labels/positions, custom task field definitions, timestamps.
 - Task: boardId, title, statusId, customValues, createdAt, updatedAt, updatedByActorId, deletedAt (or equivalent deletion marker if needed for recovery/history UI).
 - AuditEvent: taskId, boardId, taskTitleSnapshot, actorId/label snapshot, fromStatusId/label, toStatusId/label, createdAt.
 
 Proposed API groups:
+
 - GET/POST /api/tasks; PATCH /api/tasks/:id/status; DELETE /api/tasks/:id.
 - GET /api/tasks/:id/audit-logs.
 - Board configuration read/update endpoints (final CRUD depends on the customization decision).

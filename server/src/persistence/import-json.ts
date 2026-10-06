@@ -33,17 +33,19 @@ export async function importLegacySnapshot(repository: MongoRepository, snapshot
   const board = await repository.findBoard('default');
   if (!board) throw new Error('Default board must be initialized before importing tasks');
 
-  const tasksById = new Map(snapshot.tasks.map(task => [task.id, task]));
+  const tasksById = new Map(snapshot.tasks.map((task) => [task.id, task]));
   const latestActorByTask = new Map<string, { actor: string; createdAt: Date }>();
   for (const event of snapshot.auditLogs) {
     const createdAt = parseDate(event.createdAt, 'auditLogs.createdAt');
     const previous = latestActorByTask.get(event.taskId);
-    if (!previous || previous.createdAt <= createdAt) latestActorByTask.set(event.taskId, { actor: event.actor, createdAt });
+    if (!previous || previous.createdAt <= createdAt)
+      latestActorByTask.set(event.taskId, { actor: event.actor, createdAt });
   }
 
   let importedTasks = 0;
   for (const task of snapshot.tasks) {
-    if (!task.id || !task.title.trim() || !task.status) throw new Error('Invalid legacy task record');
+    if (!task.id || !task.title.trim() || !task.status)
+      throw new Error('Invalid legacy task record');
     const document: TaskDocument = {
       _id: task.id,
       boardId: board._id,
@@ -74,9 +76,11 @@ export async function importLegacySnapshot(repository: MongoRepository, snapshot
       actorHandle: actor?.handle ?? event.actor,
       action: 'status',
       fromStatusId: event.fromStatus,
-      fromStatusLabel: board.columns.find(column => column.id === event.fromStatus)?.name ?? event.fromStatus,
+      fromStatusLabel:
+        board.columns.find((column) => column.id === event.fromStatus)?.name ?? event.fromStatus,
       toStatusId: event.toStatus,
-      toStatusLabel: board.columns.find(column => column.id === event.toStatus)?.name ?? event.toStatus,
+      toStatusLabel:
+        board.columns.find((column) => column.id === event.toStatus)?.name ?? event.toStatus,
       createdAt: parseDate(event.createdAt, 'auditLogs.createdAt'),
     };
     if (await repository.importAuditEventIfMissing(document)) importedAuditEvents++;

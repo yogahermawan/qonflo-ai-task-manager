@@ -14,7 +14,10 @@ try {
   const mongo = await connectMongo(config);
   const app = createApp(new TaskService(mongo.repository));
   const server = app.listen(config.port, () => console.log('API listening on port ' + config.port));
-  const shutdown = () => server.close(() => { void mongo.client.close(); });
+  const shutdown = () =>
+    server.close(() => {
+      void mongo.client.close();
+    });
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
 } catch (error) {

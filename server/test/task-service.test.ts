@@ -3,10 +3,76 @@ import test from 'node:test';
 import { MemoryTaskRepository } from '../src/repository.js';
 import { TaskService } from '../src/task-service.js';
 import { DomainError } from '../src/domain.js';
-test('allows moving a task to any configured column and records the move',async()=>{const s=new TaskService(new MemoryTaskRepository(),()=> '2026-10-06T00:00:00.000Z');const t=await s.create('Prepare invoice','Initial notes');const moved=await s.changeStatus(t.id,'done','john.doe');assert.equal(moved.task.status,'done');assert.equal(moved.task.updatedBy,'john.doe');assert.equal((await s.logs(t.id))[0].toStatus,'done');});
-test('keeps same-column moves as no-op',async()=>{const s=new TaskService(new MemoryTaskRepository());const t=await s.create('Review PR');const result=await s.changeStatus(t.id,'to_do','jane.smith');assert.equal(result.changed,false);assert.equal((await s.logs(t.id)).length,0);});
-test('edits title and description with audit attribution',async()=>{const s=new TaskService(new MemoryTaskRepository(),()=> '2026-10-06T01:00:00.000Z');const t=await s.create('Draft','');const edited=await s.edit(t.id,'Draft v2','More context','maria.garcia');assert.equal(edited.title,'Draft v2');assert.equal(edited.description,'More context');assert.equal(edited.updatedBy,'maria.garcia');const logs=await s.logs(t.id);assert.equal(logs[0].action,'edited');});
-test('validates task fields and actors',async()=>{const s=new TaskService(new MemoryTaskRepository());const t=await s.create('Send proposal');await assert.rejects(()=>s.create('   '),(e:unknown)=>e instanceof DomainError);await assert.rejects(()=>s.create('x'.repeat(141)),(e:unknown)=>e instanceof DomainError);await assert.rejects(()=>s.edit(t.id,'Good',42,'john.doe'),(e:unknown)=>e instanceof DomainError);await assert.rejects(()=>s.changeStatus(t.id,'done','unknown.user'),(e:unknown)=>e instanceof DomainError);});
-test('creates, renames, reorders and safely deletes columns',async()=>{const s=new TaskService(new MemoryTaskRepository());const created=await s.createColumn('Review');const review=created.columns.find(c=>c.name==='Review')!;const renamed=await s.renameColumn(review.id,'QA');assert.ok(renamed.columns.some(c=>c.name==='QA'));const ids=[review.id,...renamed.columns.filter(c=>c.id!==review.id).map(c=>c.id)];const reordered=await s.reorderColumns(ids);assert.equal(reordered.columns[0].id,review.id);await s.deleteColumn(review.id);assert.ok(!(await s.board()).columns.some(c=>c.id===review.id));});
-test('refuses to delete a populated column',async()=>{const s=new TaskService(new MemoryTaskRepository());await s.create('Keep');await assert.rejects(()=>s.deleteColumn('to_do'),(e:unknown)=>e instanceof DomainError&&(e.code==='COLUMN_IN_USE'));});
-test('retains audit records when a task is deleted',async()=>{const s=new TaskService(new MemoryTaskRepository());const t=await s.create('Send proposal');await s.changeStatus(t.id,'pending','maria.garcia');await s.delete(t.id);assert.equal((await s.list()).length,0);assert.equal((await s.logs(t.id)).length,1);});
+test('allows moving a task to any configured column and records the move', async () => {
+  const s = new TaskService(new MemoryTaskRepository(), () => '2026-10-06T00:00:00.000Z');
+  const t = await s.create('Prepare invoice', 'Initial notes');
+  const moved = await s.changeStatus(t.id, 'done', 'john.doe');
+  assert.equal(moved.task.status, 'done');
+  assert.equal(moved.task.updatedBy, 'john.doe');
+  assert.equal((await s.logs(t.id))[0].toStatus, 'done');
+});
+test('keeps same-column moves as no-op', async () => {
+  const s = new TaskService(new MemoryTaskRepository());
+  const t = await s.create('Review PR');
+  const result = await s.changeStatus(t.id, 'to_do', 'jane.smith');
+  assert.equal(result.changed, false);
+  assert.equal((await s.logs(t.id)).length, 0);
+});
+test('edits title and description with audit attribution', async () => {
+  const s = new TaskService(new MemoryTaskRepository(), () => '2026-10-06T01:00:00.000Z');
+  const t = await s.create('Draft', '');
+  const edited = await s.edit(t.id, 'Draft v2', 'More context', 'maria.garcia');
+  assert.equal(edited.title, 'Draft v2');
+  assert.equal(edited.description, 'More context');
+  assert.equal(edited.updatedBy, 'maria.garcia');
+  const logs = await s.logs(t.id);
+  assert.equal(logs[0].action, 'edited');
+});
+test('validates task fields and actors', async () => {
+  const s = new TaskService(new MemoryTaskRepository());
+  const t = await s.create('Send proposal');
+  await assert.rejects(
+    () => s.create('   '),
+    (e: unknown) => e instanceof DomainError,
+  );
+  await assert.rejects(
+    () => s.create('x'.repeat(141)),
+    (e: unknown) => e instanceof DomainError,
+  );
+  await assert.rejects(
+    () => s.edit(t.id, 'Good', 42, 'john.doe'),
+    (e: unknown) => e instanceof DomainError,
+  );
+  await assert.rejects(
+    () => s.changeStatus(t.id, 'done', 'unknown.user'),
+    (e: unknown) => e instanceof DomainError,
+  );
+});
+test('creates, renames, reorders and safely deletes columns', async () => {
+  const s = new TaskService(new MemoryTaskRepository());
+  const created = await s.createColumn('Review');
+  const review = created.columns.find((c) => c.name === 'Review')!;
+  const renamed = await s.renameColumn(review.id, 'QA');
+  assert.ok(renamed.columns.some((c) => c.name === 'QA'));
+  const ids = [review.id, ...renamed.columns.filter((c) => c.id !== review.id).map((c) => c.id)];
+  const reordered = await s.reorderColumns(ids);
+  assert.equal(reordered.columns[0].id, review.id);
+  await s.deleteColumn(review.id);
+  assert.ok(!(await s.board()).columns.some((c) => c.id === review.id));
+});
+test('refuses to delete a populated column', async () => {
+  const s = new TaskService(new MemoryTaskRepository());
+  await s.create('Keep');
+  await assert.rejects(
+    () => s.deleteColumn('to_do'),
+    (e: unknown) => e instanceof DomainError && e.code === 'COLUMN_IN_USE',
+  );
+});
+test('retains audit records when a task is deleted', async () => {
+  const s = new TaskService(new MemoryTaskRepository());
+  const t = await s.create('Send proposal');
+  await s.changeStatus(t.id, 'pending', 'maria.garcia');
+  await s.delete(t.id);
+  assert.equal((await s.list()).length, 0);
+  assert.equal((await s.logs(t.id)).length, 1);
+});

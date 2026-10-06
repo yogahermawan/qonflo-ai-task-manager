@@ -5,6 +5,7 @@ Checkpoint 1 is approved. This breakdown is based on docs/REQUIREMENTS.md and do
 ## Open decision that gates T-010
 
 T-010 depends on a user decision about customization scope. The options are:
+
 - One shared board with configurable columns and custom task fields (recommended in the draft).
 - One shared board with configurable columns and fixed task fields.
 - Separate boards per user, which requires authenticated accounts and ownership rules.
@@ -29,7 +30,7 @@ The original ordered, forward-only status rule is retained in all options unless
 
 - Objective: Define persistence boundaries for actors, board configuration, tasks, and append-only audit events; provide a deliberate importer for existing JSON data if it is to be retained.
 - Requirements / ACs: REQ-001 AC-001.1/001.3, REQ-003 AC-003.1/003.3, REQ-006 AC-006.5/006.6.
-- Likely files: server/src/models/*, server/src/repositories/*, server/src/migrations/*, data/tasks.json (read-only import source).
+- Likely files: server/src/models/_, server/src/repositories/_, server/src/migrations/*, data/tasks.json (read-only import source).
 - Dependencies: T-001. The generic board document supports later settings work; ownership/configuration UI remains gated on the T-010 scope decision.
 - Edge cases: Duplicate import, invalid legacy records, ID conversion, missing board/actor references, deleted task with historical events.
 - Automated tests: Repository CRUD/persistence/index tests; importer idempotence and invalid-record handling; audit retention query test.
@@ -41,7 +42,7 @@ The original ordered, forward-only status rule is retained in all options unless
 
 - Objective: Centralize task creation, ordered status transitions, no-op behavior, updatedBy, deletion, audit append, and board/task input validation.
 - Requirements / ACs: REQ-001 AC-001.3, REQ-005 AC-005.1-005.2, REQ-006 AC-006.1-006.6, REQ-010 AC-010.1.
-- Likely files: server/src/domain/*, server/src/services/*, server/src/validation/*.
+- Likely files: server/src/domain/_, server/src/services/_, server/src/validation/*.
 - Dependencies: T-002; board config details from T-010 decision.
 - Edge cases: Empty/oversize title, invalid actor/status/ObjectId, same-status request, skipped/backward move, transaction failure, simultaneous moves, delete with retained history.
 - Automated tests: Unit tests for validation/transitions; MongoDB Atlas integration tests against a dedicated non-production database for atomic task update + audit insert, rollback, no-op, and delete retention.
@@ -63,7 +64,7 @@ The original ordered, forward-only status rule is retained in all options unless
 
 - Objective: Complete backend tests for endpoint contracts, domain validation, persistence, and failure behavior.
 - Requirements / ACs: REQ-006, REQ-007 AC-007.3, REQ-010 AC-010.1-010.2, REQ-011.
-- Likely files: server/test/unit/*, server/test/integration/*, server/package.json.
+- Likely files: server/test/unit/_, server/test/integration/_, server/package.json.
 - Dependencies: T-001 through T-004.
 - Edge cases: Missing/null/wrong-type values, whitespace, oversized fields, unknown actor, invalid ID, no-op, invalid transition, Mongo outage, transaction rollback, duplicate requests, history after delete.
 - Automated tests: Node test runner or Vitest + Supertest against dedicated MongoDB Atlas test database configured via a private test URI.
@@ -85,7 +86,7 @@ The original ordered, forward-only status rule is retained in all options unless
 
 - Objective: Split the current page into maintainable file-based components without changing approved behavior.
 - Requirements / ACs: REQ-008 AC-008.1-008.3.
-- Likely files: client/src/App.tsx, client/src/components/*, client/src/api/*, client/src/types/*, client/src/hooks/*.
+- Likely files: client/src/App.tsx, client/src/components/_, client/src/api/_, client/src/types/_, client/src/hooks/_.
 - Dependencies: None for extraction; coordinate contract changes with T-004.
 - Edge cases: Loading, empty, errors, long titles, responsive layout, no history.
 - Automated tests: Component tests for rendering, API states, and accessible labels; TypeScript build.
@@ -107,7 +108,7 @@ The original ordered, forward-only status rule is retained in all options unless
 
 - Objective: Render status lanes and safely move cards using accessible drag/drop while preserving backend workflow rules.
 - Requirements / ACs: REQ-002 AC-002.1-002.4, REQ-006 AC-006.1-006.3, REQ-011 AC-011.2.
-- Likely files: client/src/components/Board.tsx, BoardColumn.tsx, TaskCard.tsx, client/src/components/board/*, client/src/hooks/*, client/package.json.
+- Likely files: client/src/components/Board.tsx, BoardColumn.tsx, TaskCard.tsx, client/src/components/board/_, client/src/hooks/_, client/package.json.
 - Dependencies: T-003, T-004, T-007, T-008.
 - Edge cases: Drop outside board, same lane, invalid/skipped target, network error, concurrent update, keyboard interaction, narrow screen.
 - Automated tests: Component tests for droppable states; Playwright move/invalid move/error flow.

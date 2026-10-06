@@ -1,1 +1,38 @@
-export interface Actor{id:string;handle:string;displayName:string;} export interface AuditLog{id:string;taskId:string;taskTitle:string;actor:string;action:'status'|'edited';details?:string;fromStatus:string;fromStatusLabel:string;toStatus:string;toStatusLabel:string;createdAt:string;} export interface Task{id:string;title:string;description:string;status:string;createdAt:string;updatedAt:string;updatedBy:string|null;auditLogs:AuditLog[];} export interface BoardColumn{id:string;name:string;position:number;} export interface Board{id:string;name:string;columns:BoardColumn[];}
+export interface Actor {
+  id: string;
+  handle: string;
+  displayName: string;
+}
+export interface AuditLog {
+  id: string;
+  taskId: string;
+  taskTitle: string;
+  actor: string;
+  action: 'status' | 'edited';
+  details?: string;
+  fromStatus: string;
+  fromStatusLabel: string;
+  toStatus: string;
+  toStatusLabel: string;
+  createdAt: string;
+}
+export interface Task {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  updatedBy: string | null;
+  auditLogs: AuditLog[];
+}
+export interface BoardColumn {
+  id: string;
+  name: string;
+  position: number;
+}
+export interface Board {
+  id: string;
+  name: string;
+  columns: BoardColumn[];
+}

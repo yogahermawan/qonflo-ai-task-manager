@@ -7,7 +7,9 @@ export function createActorRouter(service: TaskService) {
     try {
       const actors = await service.actors();
       res.json(actors.map(({ _id, handle, displayName }) => ({ id: _id, handle, displayName })));
-    } catch (error) { next(error); }
+    } catch (error) {
+      next(error);
+    }
   });
   return router;
 }

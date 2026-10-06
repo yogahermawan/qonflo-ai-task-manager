@@ -1,4 +1,8 @@
-export interface AppConfig { port: number; mongoUri: string; mongoDatabase: string; }
+export interface AppConfig {
+  port: number;
+  mongoUri: string;
+  mongoDatabase: string;
+}
 
 export function loadConfig(env: NodeJS.ProcessEnv): AppConfig {
   const mongoUri = env.MONGODB_URI?.trim();
@@ -21,6 +25,7 @@ export function loadConfig(env: NodeJS.ProcessEnv): AppConfig {
     throw new Error('PORT must be an integer between 1 and 65535');
   }
 
-  const mongoDatabase = env.MONGODB_DB?.trim() || parsed.pathname.replace(/^\/+|\/+$/g, '') || 'qonflo';
+  const mongoDatabase =
+    env.MONGODB_DB?.trim() || parsed.pathname.replace(/^\/+|\/+$/g, '') || 'qonflo';
   return { port, mongoUri, mongoDatabase };
 }
