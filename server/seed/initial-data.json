@@ -2,7 +2,12 @@
   "actors": [
     { "_id": "john.doe", "handle": "john.doe", "displayName": "John Doe", "active": true },
     { "_id": "jane.smith", "handle": "jane.smith", "displayName": "Jane Smith", "active": true },
-    { "_id": "maria.garcia", "handle": "maria.garcia", "displayName": "Maria Garcia", "active": true }
+    {
+      "_id": "maria.garcia",
+      "handle": "maria.garcia",
+      "displayName": "Maria Garcia",
+      "active": true
+    }
   ],
   "boards": [
     {

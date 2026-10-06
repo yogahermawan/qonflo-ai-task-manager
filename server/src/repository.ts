@@ -11,7 +11,6 @@ export interface TaskDataRepository {
   listActors(): Promise<ActorDocument[]>;
   findActor(id: string, session?: RepositorySession): Promise<ActorDocument | null>;
   findBoard(id: string, session?: RepositorySession): Promise<BoardDocument | null>;
-  saveBoard(board: BoardDocument, session?: RepositorySession): Promise<unknown>;
   listTasks(boardId: string, session?: RepositorySession): Promise<TaskDocument[]>;
   findTask(id: string, session?: RepositorySession): Promise<TaskDocument | null>;
   createTask(task: TaskDocument, session?: RepositorySession): Promise<unknown>;
@@ -86,11 +85,6 @@ export class MemoryTaskRepository implements TaskDataRepository {
   }
   async findBoard(id: string) {
     return structuredClone(this.state.boards.find((b) => b._id === id) ?? null);
-  }
-  async saveBoard(board: BoardDocument) {
-    const i = this.state.boards.findIndex((b) => b._id === board._id);
-    if (i < 0) this.state.boards.push(structuredClone(board));
-    else this.state.boards[i] = structuredClone(board);
   }
   async listTasks(boardId: string) {
     return structuredClone(

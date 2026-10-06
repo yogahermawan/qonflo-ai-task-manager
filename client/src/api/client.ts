@@ -29,14 +29,4 @@ export const api = {
       body: JSON.stringify({ status, actor }),
     }),
   deleteTask: (id: string) => request<void>('/api/tasks/' + id, { method: 'DELETE' }),
-  addColumn: (name: string) =>
-    request<Board>('/api/board/columns', { method: 'POST', body: JSON.stringify({ name }) }),
-  renameColumn: (id: string, name: string) =>
-    request<Board>('/api/board/columns/' + id, { method: 'PATCH', body: JSON.stringify({ name }) }),
-  deleteColumn: (id: string) => request<Board>('/api/board/columns/' + id, { method: 'DELETE' }),
-  reorderColumns: (columnIds: string[]) =>
-    request<Board>('/api/board/columns/order', {
-      method: 'PATCH',
-      body: JSON.stringify({ columnIds }),
-    }),
 };

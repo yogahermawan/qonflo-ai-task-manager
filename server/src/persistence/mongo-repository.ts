@@ -44,10 +44,6 @@ export class MongoRepository {
   findBoard(id: string, session?: ClientSession) {
     return this.boards.findOne({ _id: id }, { session });
   }
-  saveBoard(board: BoardDocument, session?: ClientSession) {
-    const { _id, ...fields } = board;
-    return this.boards.updateOne({ _id }, { $set: fields }, { upsert: true, session });
-  }
   listTasks(boardId: string, session?: ClientSession) {
     return this.tasks.find({ boardId }, { session }).sort({ updatedAt: -1, _id: 1 }).toArray();
   }

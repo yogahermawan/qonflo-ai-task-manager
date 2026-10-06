@@ -6,73 +6,59 @@ import {
   useSensors,
   type DragEndEvent,
 } from '@dnd-kit/core';
-import type { Board as BoardType, BoardColumn, Task } from '../types/task';
-import { BoardColumn as Column } from './BoardColumn';
+import type { Board as BoardType, Task } from '../types/task';
+import { BoardColumn } from './BoardColumn';
+
 export function Board({
   board,
   tasks,
   busy,
   onMove,
+  onInvalidMove,
   onEdit,
   onDelete,
-  onAddColumn,
-  onRenameColumn,
-  onDeleteColumn,
-  onReorder,
 }: {
   board: BoardType;
   tasks: Task[];
   busy?: boolean;
   onMove: (task: Task, target: string) => Promise<void>;
+  onInvalidMove: () => void;
   onEdit: (task: Task) => void;
   onDelete: (task: Task) => Promise<void>;
-  onAddColumn: () => void;
-  onRenameColumn: (c: BoardColumn) => void;
-  onDeleteColumn: (c: BoardColumn) => void;
-  onReorder: (ids: string[]) => Promise<void>;
 }) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor),
   );
-  async function end(e: DragEndEvent) {
-    const kind = e.active.data.current?.kind;
-    const over = e.over?.data.current;
-    if (kind === 'task' && over?.kind === 'column-drop') {
-      const task = e.active.data.current?.task as Task;
-      if (task.status !== over.column.id) await onMove(task, over.column.id);
+
+  async function handleDragEnd(event: DragEndEvent) {
+    const task = event.active.data.current?.task as Task | undefined;
+    const target = event.over?.data.current?.column?.id as string | undefined;
+    if (!task || !target || target === task.status) return;
+
+    const currentIndex = board.columns.findIndex((column) => column.id === task.status);
+    const targetIndex = board.columns.findIndex((column) => column.id === target);
+    if (targetIndex !== currentIndex + 1) {
+      onInvalidMove();
+      return;
     }
-    if (kind === 'column' && over?.kind === 'column-drop') {
-      const active = e.active.data.current?.column as BoardColumn;
-      const target = over.column as BoardColumn;
-      if (active.id !== target.id) {
-        const ids = board.columns.map((c) => c.id);
-        const from = ids.indexOf(active.id),
-          to = ids.indexOf(target.id);
-        ids.splice(from, 1);
-        ids.splice(to, 0, active.id);
-        await onReorder(ids);
-      }
-    }
+
+    await onMove(task, target);
   }
+
   return (
-    <DndContext sensors={sensors} onDragEnd={end}>
+    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
       <section className="board" aria-label={board.name}>
-        {board.columns.map((c) => (
-          <Column
-            key={c.id}
-            column={c}
-            tasks={tasks.filter((t) => t.status === c.id)}
+        {board.columns.map((column) => (
+          <BoardColumn
+            key={column.id}
+            column={column}
+            tasks={tasks.filter((task) => task.status === column.id)}
             busy={busy}
             onEdit={onEdit}
             onDelete={onDelete}
-            onRename={onRenameColumn}
-            onDeleteColumn={onDeleteColumn}
           />
         ))}
-        <button className="add-step" onClick={onAddColumn} disabled={busy}>
-          + Add step
-        </button>
       </section>
     </DndContext>
   );

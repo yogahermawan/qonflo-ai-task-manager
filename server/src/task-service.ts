@@ -10,7 +10,6 @@ import type { TaskDataRepository, RepositorySession } from './repository.js';
 const DEFAULT_BOARD_ID = 'default';
 const MAX_TITLE = 140;
 const MAX_DESCRIPTION = 2000;
-const MAX_COLUMN = 80;
 export class TaskService {
   constructor(
     private readonly repository: TaskDataRepository,
@@ -76,6 +75,15 @@ export class TaskService {
           task: this.toView(task, await this.repository.listAuditEvents(id, session)),
           changed: false,
         };
+      const columns = ordered(board);
+      const fromIndex = columns.findIndex((column) => column.id === task.statusId);
+      const toIndex = columns.findIndex((column) => column.id === next);
+      if (fromIndex < 0 || toIndex !== fromIndex + 1) {
+        throw new DomainError(
+          'INVALID_TRANSITION',
+          'Tasks must follow the defined status sequence.',
+        );
+      }
       const time = new Date(this.now());
       if (
         !(await this.repository.updateTaskStatus(
@@ -152,71 +160,6 @@ export class TaskService {
       );
     });
   }
-  async createColumn(nameValue: unknown) {
-    const name = stringValue(nameValue, 'column name', MAX_COLUMN);
-    return this.repository.inTransaction(async (session) => {
-      const b = await this.requireBoard(session);
-      if (b.columns.some((c) => c.name.toLowerCase() === name.toLowerCase()))
-        throw new DomainError('DUPLICATE_COLUMN', 'column name already exists');
-      b.columns.push({ id: randomUUID(), name, position: b.columns.length });
-      b.updatedAt = new Date(this.now());
-      await this.repository.saveBoard(b, session);
-      return this.boardView(b);
-    });
-  }
-  async renameColumn(id: string, nameValue: unknown) {
-    const name = stringValue(nameValue, 'column name', MAX_COLUMN);
-    return this.repository.inTransaction(async (session) => {
-      const b = await this.requireBoard(session);
-      const col = b.columns.find((c) => c.id === id);
-      if (!col) throw new DomainError('NOT_FOUND', 'column not found');
-      if (b.columns.some((c) => c.id !== id && c.name.toLowerCase() === name.toLowerCase()))
-        throw new DomainError('DUPLICATE_COLUMN', 'column name already exists');
-      col.name = name;
-      b.updatedAt = new Date(this.now());
-      await this.repository.saveBoard(b, session);
-      return this.boardView(b);
-    });
-  }
-  async reorderColumns(idsValue: unknown) {
-    if (!Array.isArray(idsValue) || !idsValue.every((x) => typeof x === 'string'))
-      throw new DomainError('INVALID_COLUMN_ORDER', 'columnIds must be a string array');
-    return this.repository.inTransaction(async (session) => {
-      const b = await this.requireBoard(session);
-      const known = new Set(b.columns.map((c) => c.id));
-      if (idsValue.length !== known.size || idsValue.some((id) => !known.delete(id)))
-        throw new DomainError(
-          'INVALID_COLUMN_ORDER',
-          'columnIds must contain every board column exactly once',
-        );
-      b.columns = idsValue.map((id, position) => {
-        const col = b.columns.find((c) => c.id === id)!;
-        return { ...col, position };
-      });
-      b.updatedAt = new Date(this.now());
-      await this.repository.saveBoard(b, session);
-      return this.boardView(b);
-    });
-  }
-  async deleteColumn(id: string) {
-    return this.repository.inTransaction(async (session) => {
-      const b = await this.requireBoard(session);
-      if (b.columns.length <= 1)
-        throw new DomainError('LAST_COLUMN', 'board must retain at least one column');
-      if (!b.columns.some((c) => c.id === id))
-        throw new DomainError('NOT_FOUND', 'column not found');
-      const tasks = await this.repository.listTasks(b._id, session);
-      if (tasks.some((t) => t.statusId === id))
-        throw new DomainError('COLUMN_IN_USE', 'move tasks out of this column before deleting it');
-      b.columns = b.columns
-        .filter((c) => c.id !== id)
-        .sort((a, b) => a.position - b.position)
-        .map((c, position) => ({ ...c, position }));
-      b.updatedAt = new Date(this.now());
-      await this.repository.saveBoard(b, session);
-      return this.boardView(b);
-    });
-  }
   async logs(id: string): Promise<AuditLog[]> {
     return (await this.repository.listAuditEvents(id)).sort(compareEvents).map(toAudit);
   }
@@ -256,13 +199,6 @@ export class TaskService {
     const board = await this.repository.findBoard(DEFAULT_BOARD_ID, session);
     if (!board) throw new DomainError('INVALID_BOARD', 'default board is not configured');
     return board;
-  }
-  private boardView(b: BoardDocument) {
-    return {
-      id: b._id,
-      name: b.name,
-      columns: ordered(b).map(({ id, name, position }) => ({ id, name, position })),
-    };
   }
   private toView(t: TaskDocument, events: AuditEventDocument[]): TaskView {
     return {

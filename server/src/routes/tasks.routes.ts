@@ -1,44 +1,58 @@
 import { Router } from 'express';
+import type { TaskEventBus } from '../realtime/event-bus.js';
 import type { TaskService } from '../task-service.js';
-export function createTaskRouter(service: TaskService) {
-  const r = Router();
-  r.get('/', async (_q, s, n) => {
+
+export function createTaskRouter(service: TaskService, eventBus: TaskEventBus) {
+  const router = Router();
+
+  router.get('/', async (_req, res, next) => {
     try {
-      s.json(await service.list());
-    } catch (e) {
-      n(e);
+      res.json(await service.list());
+    } catch (error) {
+      next(error);
     }
   });
-  r.post('/', async (q, s, n) => {
+
+  router.post('/', async (req, res, next) => {
     try {
-      s.status(201).json(await service.create(q.body?.title, q.body?.description));
-    } catch (e) {
-      n(e);
+      const task = await service.create(req.body?.title, req.body?.description);
+      await eventBus.publish({ type: 'task.created', taskId: task.id });
+      res.status(201).json(task);
+    } catch (error) {
+      next(error);
     }
   });
-  r.patch('/:id', async (q, s, n) => {
+
+  router.patch('/:id/status', async (req, res, next) => {
     try {
-      s.json(await service.edit(q.params.id, q.body?.title, q.body?.description, q.body?.actor));
-    } catch (e) {
-      n(e);
+      const result = await service.changeStatus(req.params.id, req.body?.status, req.body?.actor);
+      if (!result.changed) return res.status(204).end();
+      await eventBus.publish({ type: 'task.status_changed', taskId: result.task.id });
+      return res.json(result.task);
+    } catch (error) {
+      return next(error);
     }
   });
-  r.patch('/:id/status', async (q, s, n) => {
+
+  router.patch('/:id', async (req, res, next) => {
     try {
-      const x = await service.changeStatus(q.params.id, q.body?.status, q.body?.actor);
-      if (!x.changed) return s.status(204).end();
-      return s.json(x.task);
-    } catch (e) {
-      return n(e);
+      res.json(
+        await service.edit(req.params.id, req.body?.title, req.body?.description, req.body?.actor),
+      );
+    } catch (error) {
+      next(error);
     }
   });
-  r.delete('/:id', async (q, s, n) => {
+
+  router.delete('/:id', async (req, res, next) => {
     try {
-      await service.delete(q.params.id);
-      s.status(204).end();
-    } catch (e) {
-      n(e);
+      await service.delete(req.params.id);
+      await eventBus.publish({ type: 'task.deleted', taskId: req.params.id });
+      res.status(204).end();
+    } catch (error) {
+      next(error);
     }
   });
-  return r;
+
+  return router;
 }

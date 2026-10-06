@@ -1,8 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
 
-async function dragTaskToPending(page: Page) {
+async function dragTaskToColumn(page: Page, name: string) {
   const source = page.locator('.task-card');
-  const target = page.locator('[aria-label="Pending column"]');
+  const target = page.locator('[aria-label="' + name + ' column"]');
   const sourceBox = await source.boundingBox();
   const targetBox = await target.boundingBox();
   if (!sourceBox || !targetBox) throw new Error('Drag source or target was not visible');
@@ -95,7 +95,7 @@ test('creates a task, chooses attribution, moves it, and keeps Updated by after 
   await page.getByLabel('New task').fill('Prepare report');
   await page.getByRole('button', { name: 'Add task' }).click();
   await expect(page.getByRole('heading', { name: 'Prepare report' })).toBeVisible();
-  await dragTaskToPending(page);
+  await dragTaskToColumn(page, 'Pending');
   await expect(page.getByText('Updated by')).toContainText('@jane.smith');
   await page.reload();
   await expect(page.getByText('Updated by')).toContainText('@jane.smith');
@@ -103,7 +103,9 @@ test('creates a task, chooses attribution, moves it, and keeps Updated by after 
   await expect(page.getByText('@jane.smith moved to Pending')).toBeVisible();
 });
 
-test('shows a visible error when a move is rejected', async ({ page }) => {
+test('rejects an invalid drop locally and keeps the card in its origin column', async ({
+  page,
+}) => {
   const task = {
     id: 'task-1',
     title: 'Blocked task',
@@ -121,16 +123,14 @@ test('shows a visible error when a move is rejected', async ({ page }) => {
       if (url.pathname === '/api/board') return route.fulfill({ json: board });
       if (url.pathname === '/api/tasks' && route.request().method() === 'GET')
         return route.fulfill({ json: [task] });
-      if (url.pathname.endsWith('/status'))
-        return route.fulfill({
-          status: 422,
-          json: { message: 'Task may only move to the next board column.' },
-        });
+      if (url.pathname.endsWith('/status')) throw new Error('Invalid drop must not call the API');
       return route.fulfill({ status: 404, json: { message: 'Not found' } });
     },
   );
   await page.goto('/');
-  await dragTaskToPending(page);
-  await expect(page.getByRole('alert')).toContainText('Task may only move');
+  await dragTaskToColumn(page, 'Done');
+  await expect(page.getByRole('alert')).toContainText(
+    'Tasks must follow the defined status sequence.',
+  );
   await expect(page.getByRole('heading', { name: 'Blocked task' })).toBeVisible();
 });

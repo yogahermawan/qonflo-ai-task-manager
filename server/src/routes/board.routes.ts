@@ -1,41 +1,14 @@
 import { Router } from 'express';
 import type { TaskService } from '../task-service.js';
+
 export function createBoardRouter(service: TaskService) {
-  const r = Router();
-  r.get('/', async (_q, s, n) => {
+  const router = Router();
+  router.get('/', async (_request, response, next) => {
     try {
-      s.json(await service.board());
-    } catch (e) {
-      n(e);
+      response.json(await service.board());
+    } catch (error) {
+      next(error);
     }
   });
-  r.post('/columns', async (q, s, n) => {
-    try {
-      s.status(201).json(await service.createColumn(q.body?.name));
-    } catch (e) {
-      n(e);
-    }
-  });
-  r.patch('/columns/order', async (q, s, n) => {
-    try {
-      s.json(await service.reorderColumns(q.body?.columnIds));
-    } catch (e) {
-      n(e);
-    }
-  });
-  r.patch('/columns/:id', async (q, s, n) => {
-    try {
-      s.json(await service.renameColumn(q.params.id, q.body?.name));
-    } catch (e) {
-      n(e);
-    }
-  });
-  r.delete('/columns/:id', async (q, s, n) => {
-    try {
-      s.json(await service.deleteColumn(q.params.id));
-    } catch (e) {
-      n(e);
-    }
-  });
-  return r;
+  return router;
 }

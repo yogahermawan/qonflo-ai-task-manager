@@ -1,25 +1,22 @@
-import { useDraggable, useDroppable } from '@dnd-kit/core';
+import { useDroppable } from '@dnd-kit/core';
 import type { BoardColumn as Column, Task } from '../types/task';
 import { TaskCard } from './TaskCard';
+
 export function BoardColumn({
   column,
   tasks,
   busy,
   onEdit,
   onDelete,
-  onRename,
-  onDeleteColumn,
 }: {
   column: Column;
   tasks: Task[];
   busy?: boolean;
-  onEdit: (t: Task) => void;
-  onDelete: (t: Task) => Promise<void>;
-  onRename: (c: Column) => void;
-  onDeleteColumn: (c: Column) => void;
+  onEdit: (task: Task) => void;
+  onDelete: (task: Task) => Promise<void>;
 }) {
-  const drop = useDroppable({ id: 'column:' + column.id, data: { kind: 'column-drop', column } });
-  const drag = useDraggable({ id: 'column-drag:' + column.id, data: { kind: 'column', column } });
+  const drop = useDroppable({ id: 'column:' + column.id, data: { column } });
+
   return (
     <section
       ref={drop.setNodeRef}
@@ -27,38 +24,12 @@ export function BoardColumn({
       aria-label={column.name + ' column'}
     >
       <header>
-        <div
-          className="column-heading"
-          ref={drag.setNodeRef}
-          {...drag.attributes}
-          {...drag.listeners}
-        >
-          <span className="column-grip" aria-label={'Reorder ' + column.name}>
-            ::
-          </span>
-          <h2>{column.name}</h2>
-          <span>{tasks.length}</span>
-        </div>
-        <div className="column-controls">
-          <button
-            className="icon-button"
-            onClick={() => onRename(column)}
-            aria-label={'Rename ' + column.name}
-          >
-            Edit
-          </button>
-          <button
-            className="icon-button"
-            onClick={() => onDeleteColumn(column)}
-            aria-label={'Delete ' + column.name}
-          >
-            x
-          </button>
-        </div>
+        <h2>{column.name}</h2>
+        <span>{tasks.length}</span>
       </header>
       <div className="column-cards">
-        {tasks.map((t) => (
-          <TaskCard key={t.id} task={t} busy={busy} onEdit={onEdit} onDelete={onDelete} />
+        {tasks.map((task) => (
+          <TaskCard key={task.id} task={task} busy={busy} onEdit={onEdit} onDelete={onDelete} />
         ))}
       </div>
     </section>
