@@ -13,27 +13,29 @@ The original ordered, forward-only status rule is retained in all options unless
 
 ## Ordered tasks
 
-### T-001 - Establish MongoDB local/runtime configuration
+### T-001 - Establish MongoDB Atlas runtime configuration
 
-- Objective: Add documented environment configuration and a local MongoDB replica-set topology suitable for transactions.
+- Objective: Configure the backend to connect to MongoDB Atlas and document server-only credentials and network requirements.
 - Requirements / ACs: REQ-001 AC-001.1-001.2, REQ-006 AC-006.1.
-- Likely files: package.json, package-lock.json, server/package.json, server/src/index.ts, .env.example, compose.yaml, README.md.
+- Likely files: package.json, package-lock.json, server/package.json, server/src/index.ts, server/.env.example, README.md.
 - Dependencies: None.
-- Edge cases: Missing URI, invalid URI, Mongo unavailable, readiness/shutdown handling.
-- Automated tests: Configuration validation and startup/readiness behavior; smoke-check connection against local replica set.
-- Documentation impact: Local Mongo startup, required env vars, replica-set requirement.
-- Definition of done: Server connects through env configuration; no secret is committed; missing/unavailable DB fails clearly; local replica-set setup is reproducible.
+- Edge cases: Missing/invalid Atlas URI, unescaped credentials, database user/IP access list errors, DNS/network failure, readiness/shutdown handling.
+- Automated tests: Configuration validation and startup/readiness behavior; live Atlas smoke test only when an isolated test URI is available.
+- Documentation impact: Atlas connection setup, required server env vars, database user and IP access list prerequisites.
+- Definition of done: Server connects through a server-only Atlas URI; no secret is committed; missing/unavailable DB fails clearly; instructions require no local Mongo service.
+- Status: Implemented; config tests and production build pass. Live Atlas connection remains unverified because no test-cluster URI/network credentials are configured in this environment.
 
 ### T-002 - Add Mongo models, repositories, indexes, actor/board persistence, and data import
 
 - Objective: Define persistence boundaries for actors, board configuration, tasks, and append-only audit events; provide a deliberate importer for existing JSON data if it is to be retained.
 - Requirements / ACs: REQ-001 AC-001.1/001.3, REQ-003 AC-003.1/003.3, REQ-006 AC-006.5/006.6.
 - Likely files: server/src/models/*, server/src/repositories/*, server/src/migrations/*, data/tasks.json (read-only import source).
-- Dependencies: T-001; T-010 scope decision for final board/task config schema.
+- Dependencies: T-001. The generic board document supports later settings work; ownership/configuration UI remains gated on the T-010 scope decision.
 - Edge cases: Duplicate import, invalid legacy records, ID conversion, missing board/actor references, deleted task with historical events.
 - Automated tests: Repository CRUD/persistence/index tests; importer idempotence and invalid-record handling; audit retention query test.
 - Documentation impact: Document collections, index strategy, and safe import command.
-- Definition of done: All runtime reads/writes use Mongo repositories; actor list is persisted; import can be run safely and does not silently overwrite existing Mongo data.
+- Definition of done: Typed Mongo repositories, validators, and indexes cover actors/boards/tasks/audit events; default configuration is seeded without overwriting user edits; the legacy import is idempotent. Service wiring into these repositories is completed by T-003 because status/audit consistency must be implemented as one transaction, not as a full-store snapshot write.
+- Status: Schemas, typed repositories, seed data, importer, and connection bootstrap implemented; unit/build checks pass. No live Mongo integration run because the Docker engine is unavailable.
 
 ### T-003 - Implement domain validation and transactional task/audit services
 
@@ -42,7 +44,7 @@ The original ordered, forward-only status rule is retained in all options unless
 - Likely files: server/src/domain/*, server/src/services/*, server/src/validation/*.
 - Dependencies: T-002; board config details from T-010 decision.
 - Edge cases: Empty/oversize title, invalid actor/status/ObjectId, same-status request, skipped/backward move, transaction failure, simultaneous moves, delete with retained history.
-- Automated tests: Unit tests for validation/transitions; Mongo replica-set integration tests for atomic task update + audit insert, rollback, no-op, and delete retention.
+- Automated tests: Unit tests for validation/transitions; MongoDB Atlas integration tests against a dedicated non-production database for atomic task update + audit insert, rollback, no-op, and delete retention.
 - Documentation impact: Record state transition, no-op, and audit consistency behavior in docs/PLAN.md and API contract.
 - Definition of done: Service enforces approved rules; successful move updates status and updatedBy atomically with one audit event; invalid/no-op operations create no event.
 
@@ -64,7 +66,7 @@ The original ordered, forward-only status rule is retained in all options unless
 - Likely files: server/test/unit/*, server/test/integration/*, server/package.json.
 - Dependencies: T-001 through T-004.
 - Edge cases: Missing/null/wrong-type values, whitespace, oversized fields, unknown actor, invalid ID, no-op, invalid transition, Mongo outage, transaction rollback, duplicate requests, history after delete.
-- Automated tests: Node test runner or Vitest + Supertest against disposable Mongo replica-set fixtures.
+- Automated tests: Node test runner or Vitest + Supertest against dedicated MongoDB Atlas test database configured via a private test URI.
 - Documentation impact: Update npm test instructions and clearly state required Mongo test topology.
 - Definition of done: Each listed input/failure class has an automated assertion; tests isolate data and clean up; repeated runs are deterministic.
 
@@ -130,7 +132,7 @@ The original ordered, forward-only status rule is retained in all options unless
 - Likely files: package.json, package-lock.json, playwright.config.ts, client/e2e/*, test scripts.
 - Dependencies: T-001, T-004, T-007 through T-010.
 - Edge cases: Persistence after reload, invalid move, API/Mongo failure state, keyboard flow, empty board.
-- Automated tests: Playwright Chromium suite; use isolated board/actor fixtures and disposable DB.
+- Automated tests: Playwright Chromium suite; use isolated board/actor fixtures and isolated Atlas test database.
 - Documentation impact: Document install/run commands and prerequisites; CI command if CI is added.
 - Definition of done: Required create/select/move/update-by/history/customization/reload/error flows pass and are repeatable from a clean environment.
 
@@ -159,3 +161,16 @@ Database topology precedes repository work; repository contracts precede transac
 ## Checkpoint state
 
 Checkpoint 2 task breakdown draft. Awaiting explicit approval before implementation. T-010 remains gated on the user's customization-scope decision.
+
+## Implementation progress
+
+- T-001: Implemented. Atlas configuration is backend-only; live connection is pending a dedicated test URI.
+- T-002: Implemented foundations: collections, validators, indexes, seed, and importer.
+- T-003: Implemented and unit-tested. Mongo transaction integration remains pending an isolated Atlas database.
+- T-004: Implemented and API-tested. Routes are split by task, audit, actor, board-read, and docs domains.
+- T-005: Partially implemented. Backend unit/API validation tests pass; Atlas integration tests remain pending test credentials.
+- T-006: Implemented. OpenAPI and Scalar are available at /api/openapi.json and /api/docs.
+- T-007 through T-009: Implemented and browser-tested. Status movement is drag/drop only; no click-to-move action remains.
+- T-010: Blocked on customization scope decision.
+- T-011: Partially implemented. Playwright tests pass with HTTP fixtures; an Atlas-backed full-stack suite awaits the test database.
+- T-012: Pending final review after T-010 and Atlas integration coverage.

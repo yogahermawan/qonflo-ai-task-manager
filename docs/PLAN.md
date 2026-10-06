@@ -27,7 +27,7 @@ Other assumptions to validate:
 - Frontend: retain React, TypeScript, and Vite. Use the official MongoDB Node driver with request-boundary validation and Mongo collection validators/indexes; avoid an ODM unless implementation needs it. Use a page-level board composition with small Board, BoardColumn, TaskCard, ActorPicker, TaskCreateForm, BoardSettings, AuditHistory, and shared UI components. Add typed API client/hooks. Use a focused accessible DnD library (candidate: dnd-kit) for intentional Kanban movement.
 - Backend: retain Express/TypeScript. Split task, board/configuration, and audit routes into separate route modules. Route handlers parse/validate request DTOs and delegate to services; services enforce workflow and audit invariants; repositories own MongoDB persistence.
 - Persistence: MongoDB is accessed only by the Express backend through the official MongoDB Node driver. The MongoDB URI and credentials stay in server-side environment variables and are never sent to the browser. The React frontend calls the Express HTTP API only; it has no MongoDB driver or direct database connection. The backend validates incoming HTTP requests before database operations, with MongoDB collection validators/indexes as an additional storage-level safeguard. Collections store board configuration, tasks, and audit events. Tasks include boardId, title, statusId, custom field values, createdAt, updatedAt, and updatedBy actor reference. Board configuration stores ordered columns and approved custom-field definitions. Audit events include taskId, boardId, task-title snapshot, actor, from/to status IDs and label snapshots, and createdAt.
-- Consistency: status update and audit append occur in one MongoDB transaction. A local Mongo replica set is needed for transaction-capable integration tests and local development. Audit collection has no update/delete API; task deletion does not cascade to audit events. Add appropriate board/status/task chronological indexes.
+- Consistency: status update and audit append occur in one MongoDB transaction. The application connects to MongoDB Atlas using a server-only mongodb+srv URI. A dedicated, non-production Atlas database is used for transaction integration tests; the app setup does not require a local MongoDB service. Audit collection has no update/delete API; task deletion does not cascade to audit events. Add appropriate board/status/task chronological indexes.
 - API docs: OpenAPI is the source for Scalar docs, served at a stable endpoint (proposed /api/docs) with the machine-readable schema available separately. Keep the spec generated or validated against actual route schemas to prevent drift.
 - Actor UX: clearly labeled actor control with current choice, searchable/listbox behavior if the roster grows, keyboard support, and accessible focus. The actor roster is persisted in MongoDB and served by the API; any initial records come from setup/seed data, not frontend constants.
 - Errors: consistent JSON errors for validation, not found, conflict/invalid transition, and internal/database errors. Never expose database internals. Frontend retains data on failed move and displays actionable feedback.
@@ -60,7 +60,7 @@ Use Mongo ObjectId validation at the boundary. Validate normalized non-empty tit
 
 ## Risks and mitigations
 
-- Mongo transaction support varies by deployment: use a replica-set development/test topology and document the requirement.
+- Mongo transaction support varies by deployment: use an Atlas deployment that supports multi-document transactions and document its connection requirements.
 - Self-selected actor can be spoofed: disclose this while auth remains out of scope; actual user identity requires explicit auth scope.
 - User-configurable columns can invalidate existing tasks/history: stable IDs, prohibit unsafe deletion/reorder while tasks exist or require explicit task migration, and snapshot historic labels.
 - Drag/drop can be inaccessible or accidental: choose keyboard-accessible controls and announce/currently confirm the target; server still enforces valid transition order.
@@ -79,4 +79,4 @@ Use Mongo ObjectId validation at the boundary. Validate normalized non-empty tit
 
 ## Checkpoint state
 
-Checkpoint 1 approved. Checkpoint 2 task breakdown is in docs/TASKS.md and awaits approval. Customization scope remains open; T-010 is gated on that decision. No implementation code or dependencies have been changed.
+Checkpoint 1 and Checkpoint 2 approved. Checkpoint 3 implementation is active. The Atlas cloud connection is configured from the backend environment; live cloud connection remains unverified because no Atlas test URI is configured here. Customization scope remains open; T-010 is gated on that decision.

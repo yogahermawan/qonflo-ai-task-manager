@@ -2,4 +2,7 @@ node_modules
 dist
 *.tsbuildinfo
 data/tasks.json
+test-results/
 .env
+.env.*
+!.env.example
