@@ -5,7 +5,7 @@ A small React and Express task board with an auditable, forward-only workflow.
 ## What it does
 
 - Create, list, edit, and delete tasks.
-- Move a task only through to_do �w^~)�v pending"��y��y� in_progress �w^~)�v done.
+- Move a task only through to_do -> pending -> in_progress -> done.
 - Reject skipped and backward moves on the API and in the drag-and-drop UI.
 - Record each real status change in an immutable audit collection with actor, source, destination, and timestamp.
 - Keep audit history after deleting the task.
